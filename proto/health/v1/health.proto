@@ -1,0 +1,18 @@
+// Internal liveness probe for the gRPC monolith.
+// The public REST health endpoint (Step N) will be a separate surface.
+syntax = "proto3";
+
+package health.v1;
+
+// HealthService exposes a minimal liveness check used by Step 0 to verify
+// that the gRPC server boots, reflection works, and code generation is
+// wired correctly.
+service HealthService {
+  rpc Ping(PingRequest) returns (PingResponse);
+}
+
+message PingRequest {}
+
+message PingResponse {
+  string status = 1;
+}
