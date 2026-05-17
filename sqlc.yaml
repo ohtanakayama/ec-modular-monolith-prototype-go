@@ -1,0 +1,22 @@
+version: "2"
+
+# BC ごとに sql エントリを 1 つずつ追加していく。
+# - queries: 該当 BC 配下の queries ディレクトリ
+# - schema:  全 BC の migrations をまとめて読ませる (schema-qualified なので OK)
+# - gen.go.out: BC ローカルの infra/db に出力
+#
+# Step 1 で members を追加する想定。 ADR 0007 参照。
+#
+# 雛形 (Step 1 で有効化):
+# sql:
+#   - engine: "postgresql"
+#     queries: "internal/modules/members/infra/queries"
+#     schema:  "migrations"
+#     gen:
+#       go:
+#         package: "db"
+#         out:     "internal/modules/members/infra/db"
+#         sql_package: "pgx/v5"
+#         emit_pointers_for_null_types: true
+
+sql: []
