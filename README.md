@@ -182,18 +182,31 @@ make build
 ./bin/internal-server
 ```
 
-別ターミナルで:
+別ターミナルで動作確認:
 
 ```bash
+# サービス一覧 (reflection 経由)
 grpcurl -plaintext localhost:9090 list
-# → grpc.health.v1.Health, grpc.reflection.v1.ServerReflection が見えれば Step 0 成功
+# 期待:
+#   grpc.health.v1.Health
+#   grpc.reflection.v1.ServerReflection
+#   grpc.reflection.v1alpha.ServerReflection
+#   health.v1.HealthService
+
+# 自作 health service の Ping (proto-first フローの動作確認)
+grpcurl -plaintext -d '{}' localhost:9090 health.v1.HealthService/Ping
+# → {"status": "ok"}
+
+# 標準 gRPC health check (k8s liveness 互換)
+grpcurl -plaintext -d '{}' localhost:9090 grpc.health.v1.Health/Check
+# → {"status": "SERVING"}
 ```
 
 ## 実装ステップ (ロードマップ)
 
 | Step | 内容 | 状態 |
 |---|---|---|
-| 0 | 土台構築 (proto / sqlc / migration / tx / gRPC server) | 進行中 |
+| 0 | 土台構築 (proto / sqlc / migration / tx / gRPC server) | 完了 (`step-0-complete`) |
 | 1 | Members BC を gRPC で一周 (Register / GetById) | 未着手 |
 | 2 | Products BC + 境界 linter (`depguard`) 投入 | 未着手 |
 | 3 | Inventory BC (reserve / commit / release の状態機械) | 未着手 |
@@ -223,12 +236,28 @@ grpcurl -plaintext localhost:9090 list
 
 ## 設計判断記録 (ADR)
 
-`docs/adr/` 配下に置く。Step 0 で 10 件、以降は新規判断が出るたびに追加。
+`docs/adr/` 配下。**設計判断が発生したコミットに同梱** する運用 (まとめて後追いで書かない)。 Step 0 完了時点で以下を確定:
+
+| # | タイトル | 確定コミット |
+|---|---|---|
+| 0003 | DI 配線 (manual + 関数カリー化) | C08 |
+| 0004 | API スキーマ戦略 (proto-first + buf) | C04 |
+| 0006 | DB schema 分離 (BC ごとに PG schema) | C09 |
+| 0007 | sqlc 採用 (SQL-first) | C05 |
+| 0008 | tx 伝搬 (`context.Context` + `UnaryTxInterceptor`) | C07 |
+| 0009 | エラーモデル (typed error 4 種) | C06 |
+| 0010 | 起動形態 (1 プロセス・1 ポート、 gRPC のみ) | C08 |
+
+Step 1 以降で確定する予定 (空き番号):
+- 0001 モジュール境界の強制方法 (package 可視性 / Step 2 で `depguard`)
+- 0002 ドメイン層 building blocks (Entity / VO / Repository Port)
+- 0005 テスト戦略 (unit + integration、 TRUNCATE 戦略)
 
 ## 既知の限界 (現段階)
 
-- まだ Step 0 のため、業務ロジックは実装されていない
+- Step 0 完了時点で **業務ロジックは未実装** (Step 1 で会員 BC を一周予定)
 - 公開 REST は未実装 (Step N で導入)
 - 境界 linter は未投入 (Step 2 で `depguard`)
 - 観測性 (OpenTelemetry / Prometheus) は未導入
 - CI (GitHub Actions) は未設定
+- すべての unary RPC が tx を開始する設計のため、 DB 不在では `Ping` 等も失敗する (Step 0+1 の意図的な単純化、 ADR 0008 参照)
