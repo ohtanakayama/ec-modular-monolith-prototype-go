@@ -1,0 +1,39 @@
+// Members BC: account registration and lookup.
+// API contract is owned by this proto (ADR 0004).
+syntax = "proto3";
+
+package members.v1;
+
+import "google/protobuf/timestamp.proto";
+
+service MemberService {
+  // Register a new member. Email must be unique within members.member.
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+
+  // GetById fetches a member by their id; returns NOT_FOUND if absent.
+  rpc GetById(GetByIdRequest) returns (GetByIdResponse);
+}
+
+message RegisterRequest {
+  string email = 1;
+  string name = 2;
+}
+
+message RegisterResponse {
+  Member member = 1;
+}
+
+message GetByIdRequest {
+  string id = 1;
+}
+
+message GetByIdResponse {
+  Member member = 1;
+}
+
+message Member {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
